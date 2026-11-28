@@ -1,0 +1,67 @@
+@model Vehiculo
+@{
+    var esNuevo = Model.Id == 0;
+    ViewData["Title"] = esNuevo ? "Registrar vehículo" : "Editar vehículo";
+}
+
+<h2>@ViewData["Title"]</h2>
+@if (esNuevo)
+{
+    <p class="text-muted">Al guardar, el sistema crea automáticamente una orden de atención en estado Pendiente.</p>
+}
+<hr />
+<div class="row">
+    <div class="col-md-5">
+        <form asp-action="@(esNuevo ? "Create" : "Edit")" asp-route-id="@Model.Id" method="post" autocomplete="off">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            @if (!esNuevo)
+            {
+                <input type="hidden" asp-for="Id" />
+            }
+
+            <div class="mb-3">
+                <label asp-for="ClienteId" class="form-label"></label>
+                <select asp-for="ClienteId" asp-items="(SelectList)ViewBag.Clientes" class="form-select">
+                    <option value="">Seleccione un cliente...</option>
+                </select>
+                <span asp-validation-for="ClienteId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Placa" class="form-label"></label>
+                <input asp-for="Placa" class="form-control" maxlength="6" data-uppercase />
+                <span asp-validation-for="Placa" class="text-danger"></span>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label asp-for="Marca" class="form-label"></label>
+                    <input asp-for="Marca" class="form-control" />
+                    <span asp-validation-for="Marca" class="text-danger"></span>
+                </div>
+                <div class="col-6 mb-3">
+                    <label asp-for="Modelo" class="form-label"></label>
+                    <input asp-for="Modelo" class="form-control" />
+                    <span asp-validation-for="Modelo" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label asp-for="Anio" class="form-label"></label>
+                    <input asp-for="Anio" class="form-control" />
+                    <span asp-validation-for="Anio" class="text-danger"></span>
+                </div>
+                <div class="col-6 mb-3">
+                    <label asp-for="Kilometraje" class="form-label"></label>
+                    <input asp-for="Kilometraje" class="form-control" />
+                    <span asp-validation-for="Kilometraje" class="text-danger"></span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

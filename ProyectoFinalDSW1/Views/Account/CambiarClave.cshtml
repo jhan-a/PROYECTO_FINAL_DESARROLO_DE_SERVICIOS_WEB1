@@ -1,0 +1,38 @@
+@model CambiarClaveViewModel
+@{
+    ViewData["Title"] = "Cambiar contraseña";
+}
+
+<h2>Cambiar contraseña</h2>
+<hr />
+<div class="row">
+    <div class="col-md-5">
+        <form asp-action="CambiarClave" method="post" autocomplete="off">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="ClaveActual" class="form-label"></label>
+                <input asp-for="ClaveActual" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="ClaveActual" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ClaveNueva" class="form-label"></label>
+                <input asp-for="ClaveNueva" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="ClaveNueva" class="text-danger"></span>
+                <div class="form-text">Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo.</div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ConfirmarClave" class="form-label"></label>
+                <input asp-for="ConfirmarClave" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmarClave" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

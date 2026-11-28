@@ -1,150 +1,154 @@
-
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ProyectoFinalDSW1.Models;
 using ProyectoFinalDSW1.Data;
+using ProyectoFinalDSW1.Models;
+using ProyectoFinalDSW1.Services;
 
-public class UsuariosController : Controller
+namespace ProyectoFinalDSW1.Controllers
 {
-    private readonly AppDbContext _context;
-
-    public UsuariosController(AppDbContext context)
+    [Authorize(Roles = "Admin")]
+    public class UsuariosController : Controller
     {
-        _context = context;
-    }
+        private const int PageSize = 8;
 
-    // GET: USUARIOS
-    public async Task<IActionResult> Index()    
-    {
-        return View(await _context.Usuarios.ToListAsync());
-    }
+        private readonly AppDbContext _context;
+        private readonly TallerRepository _repo;
 
-    // GET: USUARIOS/Details/5
-    public async Task<IActionResult> Details(int? id)
-    {
-        if (id == null)
+        public UsuariosController(AppDbContext context, TallerRepository repo)
         {
-            return NotFound();
+            _context = context;
+            _repo = repo;
         }
 
-        var usuario = await _context.Usuarios
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (usuario == null)
+        private int IdActual() => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        // GET: Usuarios
+        public async Task<IActionResult> Index(string? buscar, int page = 1)
         {
-            return NotFound();
+            if (page < 1) page = 1;
+            var (items, total) = await _repo.ListarUsuarios(buscar, page, PageSize);
+            return View(ListaPaginada<Usuario>.Crear(items, total, page, PageSize, buscar));
         }
 
-        return View(usuario);
-    }
-
-    // GET: USUARIOS/Create
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-    // POST: USUARIOS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Nombre,Correo,ClaveHash,Rol,Activo,IntentosFallidos,BloqueadoHasta,FechaRegistro")] Usuario usuario)
-    {
-        if (ModelState.IsValid)
+        // GET: Usuarios/Create
+        public IActionResult Create()
         {
-            _context.Add(usuario);
+            return View(new UsuarioCrearViewModel());
+        }
+
+        // POST: Usuarios/Create
+        [HttpPost]
+        public async Task<IActionResult> Create(UsuarioCrearViewModel modelo)
+        {
+            var correo = modelo.Correo?.Trim().ToLowerInvariant() ?? string.Empty;
+
+            if (await _context.Usuarios.AnyAsync(u => u.Correo == correo))
+            {
+                ModelState.AddModelError(nameof(modelo.Correo), "Ya existe un usuario con ese correo");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                modelo.Clave = string.Empty;
+                modelo.ConfirmarClave = string.Empty;
+                return View(modelo);
+            }
+
+            var usuario = new Usuario
+            {
+                Nombre = modelo.Nombre.Trim(),
+                Correo = correo,
+                Rol = modelo.Rol!.Value,
+                ClaveHash = ClaveSegura.Hashear(modelo.Clave),
+                Activo = true,
+                FechaRegistro = DateTime.Now
+            };
+            _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
+
+            TempData["Ok"] = $"Usuario {usuario.Nombre} registrado correctamente.";
             return RedirectToAction(nameof(Index));
         }
-        return View(usuario);
-    }
 
-    // GET: USUARIOS/Edit/5
-    public async Task<IActionResult> Edit(int? id)
-    {
-        if (id == null)
+        // GET: Usuarios/Edit/5
+        public async Task<IActionResult> Edit(int? id)
         {
-            return NotFound();
-        }
+            if (id == null) return NotFound();
 
-        var usuario = await _context.Usuarios.FindAsync(id);
-        if (usuario == null)
-        {
-            return NotFound();
-        }
-        return View(usuario);
-    }
+            var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+            if (usuario == null) return NotFound();
 
-    // POST: USUARIOS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Correo,ClaveHash,Rol,Activo,IntentosFallidos,BloqueadoHasta,FechaRegistro")] Usuario usuario)
-    {
-        if (id != usuario.Id)
-        {
-            return NotFound();
-        }
-
-        if (ModelState.IsValid)
-        {
-            try
+            return View(new UsuarioEditarViewModel
             {
-                _context.Update(usuario);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
+                Id = usuario.Id,
+                Nombre = usuario.Nombre,
+                Correo = usuario.Correo,
+                Rol = usuario.Rol,
+                Activo = usuario.Activo
+            });
+        }
+
+        // POST: Usuarios/Edit/5
+        [HttpPost]
+        public async Task<IActionResult> Edit(int id, UsuarioEditarViewModel modelo)
+        {
+            if (id != modelo.Id) return NotFound();
+
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null) return NotFound();
+
+            var correo = modelo.Correo?.Trim().ToLowerInvariant() ?? string.Empty;
+
+            if (await _context.Usuarios.AnyAsync(u => u.Correo == correo && u.Id != id))
             {
-                if (!UsuarioExists(usuario.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                ModelState.AddModelError(nameof(modelo.Correo), "Ya existe un usuario con ese correo");
             }
+
+            // El administrador no puede quitarse el acceso a sí mismo
+            if (id == IdActual() && (!modelo.Activo || modelo.Rol != Rol.Admin))
+            {
+                ModelState.AddModelError(string.Empty, "No puedes desactivar tu cuenta ni cambiar tu propio rol.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                modelo.NuevaClave = null;
+                return View(modelo);
+            }
+
+            usuario.Nombre = modelo.Nombre.Trim();
+            usuario.Correo = correo;
+            usuario.Rol = modelo.Rol!.Value;
+            usuario.Activo = modelo.Activo;
+
+            if (!string.IsNullOrWhiteSpace(modelo.NuevaClave))
+            {
+                usuario.ClaveHash = ClaveSegura.Hashear(modelo.NuevaClave);
+                usuario.IntentosFallidos = 0;
+                usuario.BloqueadoHasta = null;
+            }
+
+            await _context.SaveChangesAsync();
+
+            TempData["Ok"] = "Usuario actualizado correctamente.";
             return RedirectToAction(nameof(Index));
         }
-        return View(usuario);
-    }
 
-    // GET: USUARIOS/Delete/5
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null)
+        // POST: Usuarios/Desbloquear/5
+        [HttpPost]
+        public async Task<IActionResult> Desbloquear(int id)
         {
-            return NotFound();
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null) return NotFound();
+
+            usuario.IntentosFallidos = 0;
+            usuario.BloqueadoHasta = null;
+            await _context.SaveChangesAsync();
+
+            TempData["Ok"] = $"Cuenta de {usuario.Nombre} desbloqueada.";
+            return RedirectToAction(nameof(Index));
         }
-
-        var usuario = await _context.Usuarios
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (usuario == null)
-        {
-            return NotFound();
-        }
-
-        return View(usuario);
-    }
-
-    // POST: USUARIOS/Delete/5
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? id)
-    {
-        var usuario = await _context.Usuarios.FindAsync(id);
-        if (usuario != null)
-        {
-            _context.Usuarios.Remove(usuario);
-        }
-
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
-    }
-
-    private bool UsuarioExists(int? id)
-    {
-        return _context.Usuarios.Any(e => e.Id == id);
     }
 }

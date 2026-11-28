@@ -1,0 +1,21 @@
+@model PaginacionViewModel
+
+@if (Model.TotalPaginas > 1)
+{
+    <nav aria-label="Paginación">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.Pagina <= 1 ? "disabled" : "")">
+                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Pagina - 1)" asp-route-buscar="@Model.Buscar" asp-route-estado="@Model.Estado" asp-route-alerta="@(Model.Alerta ? "true" : null)">Anterior</a>
+            </li>
+            @for (int i = 1; i <= Model.TotalPaginas; i++)
+            {
+                <li class="page-item @(i == Model.Pagina ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-buscar="@Model.Buscar" asp-route-estado="@Model.Estado" asp-route-alerta="@(Model.Alerta ? "true" : null)">@i</a>
+                </li>
+            }
+            <li class="page-item @(Model.Pagina >= Model.TotalPaginas ? "disabled" : "")">
+                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Pagina + 1)" asp-route-buscar="@Model.Buscar" asp-route-estado="@Model.Estado" asp-route-alerta="@(Model.Alerta ? "true" : null)">Siguiente</a>
+            </li>
+        </ul>
+    </nav>
+}

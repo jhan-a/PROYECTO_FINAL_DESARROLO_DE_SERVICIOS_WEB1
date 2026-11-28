@@ -1,8 +1,78 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Inicio";
+    var esAdmin = User.IsInRole("Admin");
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<h2>Bienvenido, @User.Identity?.Name</h2>
+<p class="text-muted">@(esAdmin ? "Resumen general del taller" : "Resumen de tus órdenes asignadas")</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card tarjeta-resumen border-secondary">
+            <div class="card-body">
+                <div class="numero">@Model.Pendientes</div>
+                <div>Pendientes</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card tarjeta-resumen border-warning">
+            <div class="card-body">
+                <div class="numero">@Model.EnReparacion</div>
+                <div>En reparación</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card tarjeta-resumen border-info">
+            <div class="card-body">
+                <div class="numero">@Model.Terminadas</div>
+                <div>Terminadas</div>
+            </div>
+        </div>
+    </div>
+    @if (esAdmin)
+    {
+        <div class="col-6 col-md-3">
+            <div class="card tarjeta-resumen border-primary">
+                <div class="card-body">
+                    <div class="numero">@Model.TotalClientes</div>
+                    <div>Clientes activos</div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
+
+<a class="btn btn-primary" asp-controller="Ordenes" asp-action="Index">@(esAdmin ? "Ver órdenes" : "Ver mis órdenes")</a>
+
+@if (esAdmin)
+{
+    <a class="btn btn-outline-primary" asp-controller="Vehiculos" asp-action="Create">Registrar vehículo</a>
+
+    <h4 class="mt-4">Alertas de stock</h4>
+    @if (Model.RepuestosEnAlerta.Any())
+    {
+        <table class="table table-bordered table-sm">
+            <thead class="table-light">
+                <tr><th>Repuesto</th><th>Stock</th><th>Stock mínimo</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.RepuestosEnAlerta)
+                {
+                    <tr>
+                        <td>@r.Nombre</td>
+                        <td><span class="badge bg-danger">@r.Stock</span></td>
+                        <td>@r.StockMinimo</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <a asp-controller="Repuestos" asp-action="Index" asp-route-alerta="true">Ver todos los repuestos en alerta</a>
+    }
+    else
+    {
+        <p class="text-muted">Todos los repuestos tienen stock suficiente.</p>
+    }
+}

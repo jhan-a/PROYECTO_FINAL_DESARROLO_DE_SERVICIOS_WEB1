@@ -1,0 +1,58 @@
+@model LoginViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Iniciar sesión - Taller Mecánico</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="login-fondo">
+    <div class="container">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-11 col-sm-8 col-md-6 col-lg-4">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-dark text-white text-center py-3">
+                        <h4 class="mb-0">Taller Mecánico</h4>
+                        <small>Sistema de gestión de órdenes de trabajo</small>
+                    </div>
+                    <div class="card-body p-4">
+                        <h5 class="text-center mb-3">Iniciar sesión</h5>
+
+                        <form asp-action="Login" method="post" autocomplete="off">
+                            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                            <input type="hidden" asp-for="ReturnUrl" />
+
+                            <div class="mb-3">
+                                <label asp-for="Correo" class="form-label"></label>
+                                <input asp-for="Correo" class="form-control" autocomplete="username" autofocus />
+                                <span asp-validation-for="Correo" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Clave" class="form-label"></label>
+                                <input asp-for="Clave" class="form-control" autocomplete="current-password" />
+                                <span asp-validation-for="Clave" class="text-danger"></span>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">Ingresar</button>
+                        </form>
+                    </div>
+                    <div class="card-footer text-center text-muted small">
+                        Acceso solo para personal autorizado
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
